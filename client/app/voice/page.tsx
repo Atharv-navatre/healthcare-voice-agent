@@ -2,36 +2,73 @@
 
 import { useState, useRef } from "react";
 
+type SpeechRecognitionResultItem = {
+  transcript: string;
+};
+
+type SpeechRecognitionEventType = {
+  results: SpeechRecognitionResultItem[][];
+};
+
+type SpeechRecognitionType = {
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: (event: SpeechRecognitionEventType) => void;
+  onend: () => void;
+};
+
 export default function VoiceAgent() {
   const [conversation, setConversation] = useState("");
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const recognitionRef = useRef<SpeechRecognitionType | null>(null);
 
   const startListening = () => {
     if (recognitionRef.current) recognitionRef.current.stop();
 
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognitionConstructor =
+      typeof window !== "undefined"
+        ? (
+            window as unknown as {
+              SpeechRecognition?: new () => SpeechRecognitionType;
+              webkitSpeechRecognition?: new () => SpeechRecognitionType;
+            }
+          ).SpeechRecognition ||
+          (
+            window as unknown as {
+              webkitSpeechRecognition?: new () => SpeechRecognitionType;
+            }
+          ).webkitSpeechRecognition
+        : undefined;
 
-    const recognition = new SpeechRecognition();
+    if (!SpeechRecognitionConstructor) {
+      alert("Speech Recognition not supported in this browser");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionConstructor();
     recognition.lang = "en-US";
 
     recognitionRef.current = recognition;
     setListening(true);
     recognition.start();
 
-    recognition.onresult = async (event: SpeechRecognitionEvent) => {
+    recognition.onresult = async (event) => {
       const userText = event.results[0][0].transcript;
 
       setConversation((prev) => prev + `\n🧑 You: ${userText}`);
 
-      const res = await fetch("https://healthcare-voice-agent.onrender.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText }),
-      });
+      const res = await fetch(
+        "https://healthcare-voice-agent.onrender.com/chat",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userText }),
+        }
+      );
 
-      const data = await res.json();
+      const data: { reply: string } = await res.json();
 
       setConversation((prev) => prev + `\n🤖 Agent: ${data.reply}`);
 
@@ -45,7 +82,10 @@ export default function VoiceAgent() {
     const speech = new SpeechSynthesisUtterance(text);
 
     const voices = window.speechSynthesis.getVoices();
-    speech.voice = voices.find((v) => v.lang === "en-US") || voices[0];
+    const selectedVoice =
+      voices.find((v) => v.lang === "en-US") || voices[0];
+
+    if (selectedVoice) speech.voice = selectedVoice;
 
     speech.rate = 1.05;
     speech.lang = "en-US";
