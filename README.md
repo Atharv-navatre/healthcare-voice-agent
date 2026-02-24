@@ -114,7 +114,7 @@ npm run dev
 
 4️⃣ Open in browser
 
-http://localhost:3000/voice
+http://localhost:3001/voice
 
 🧩 Future Enhancements
 
