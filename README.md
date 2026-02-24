@@ -6,7 +6,7 @@ This project transforms traditional symptom checkers into a **human-like convers
 ---
 
 ## 🚀 Live Demo
-🔗 https://your-vercel-url/voice
+🔗 https://healthcare-voice-agent-zoqx.vercel.app/voice
 
 ---
 
